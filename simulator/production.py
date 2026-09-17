@@ -2,6 +2,7 @@ import time
 from datetime import datetime, timezone
 
 from opensearchpy import OpenSearch
+from opensearchpy.exceptions import ConnectionError as OpenSearchConnectionError
 
 from simulator.services.payment_api import PaymentAPI
 
@@ -15,7 +16,7 @@ class ProductionSimulator:
         self.payment_api = PaymentAPI("healthy")
 
         # Connect to the local OpenSearch container
-        self.opensearch = OpenSearch(
+        self.client = OpenSearch(
             hosts=[{"host": "localhost", "port": 9200}],
             use_ssl=False,
             verify_certs=False,
@@ -27,15 +28,20 @@ class ProductionSimulator:
         print(f"\n=== Production state changed to: {state.upper()} ===")
 
     def send_to_opensearch(self, record):
-        response = self.opensearch.index(
-            index=INDEX_NAME,
-            body=record,
-        )
-
-        print(
-            f"Sent {record['type']} to OpenSearch "
-            f"(document ID: {response['_id']})"
-        )
+        try:
+            response = self.client.index(
+                    index=INDEX_NAME,
+                    body=record,
+            )
+            print(
+                f"Sent {record['type']} to OpenSearch "
+                f"(document ID: {response['_id']})"
+            )
+        except OpenSearchConnectionError as error:
+            print(
+                    f"WARNING: OpenSearch unavialable. "
+                    f"Could not send {record['type']}."
+            )
 
     def generate_request(self):
         result = self.payment_api.process_payment()
