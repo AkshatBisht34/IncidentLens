@@ -414,9 +414,6 @@ else:
 
     st.write(sections["confidence"])
 
-    st.subheader("6. Limitation")
-    st.write(sections["limitation"])
-
     st.divider()
 
     # =====================================================
