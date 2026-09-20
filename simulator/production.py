@@ -87,43 +87,46 @@ class ProductionSimulator:
 
 
 if __name__ == "__main__":
-
     simulator = ProductionSimulator()
 
     print("IncidentLens simulated production started.")
     print(f"Run ID: {simulator.run_id}")
-    print("Current state: HEALTHY")
+    print("Production will continuously generate telemetry.")
 
-    for _ in range(5):
+    while True:
 
-        records = simulator.generate_request()
+        # HEALTHY
+        simulator.set_state("healthy")
 
-        for record in records:
-            print(f"{record['type'].upper()}: {record}")
-            simulator.send_to_opensearch(record)
+        for _ in range(5):
+            records = simulator.generate_request()
 
-        time.sleep(2)
+            for record in records:
+                print(f"{record['type'].upper()}: {record}")
+                simulator.send_to_opensearch(record)
 
-    simulator.set_state("degraded")
+            time.sleep(2)
 
-    for _ in range(5):
+        # DEGRADED
+        simulator.set_state("degraded")
 
-        records = simulator.generate_request()
+        for _ in range(5):
+            records = simulator.generate_request()
 
-        for record in records:
-            print(f"{record['type'].upper()}: {record}")
-            simulator.send_to_opensearch(record)
+            for record in records:
+                print(f"{record['type'].upper()}: {record}")
+                simulator.send_to_opensearch(record)
 
-        time.sleep(2)
+            time.sleep(2)
 
-    simulator.set_state("failing")
+        # FAILING
+        simulator.set_state("failing")
 
-    for _ in range(5):
+        for _ in range(5):
+            records = simulator.generate_request()
 
-        records = simulator.generate_request()
+            for record in records:
+                print(f"{record['type'].upper()}: {record}")
+                simulator.send_to_opensearch(record)
 
-        for record in records:
-            print(f"{record['type'].upper()}: {record}")
-            simulator.send_to_opensearch(record)
-
-        time.sleep(2)
+            time.sleep(2)
