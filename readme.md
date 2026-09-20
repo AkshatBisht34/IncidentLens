@@ -1,6 +1,7 @@
 IncidentLens
 > AI-powered, evidence-based incident investigation for production-like
 > environments.
+
 IncidentLens is an AI-native DevOps project built for the WemakeDevs /
 AWS Hackathon -- Build It track.
 The goal is simple: when a service starts failing, an engineer should
@@ -13,24 +14,41 @@ an incident analysis.
 The core principle of the project is:
 Do not ask the LLM to guess what happened. Make the agent investigate
 the evidence first.
+
 ---
-Table of Contents
+Table of Contents 
 Project Overview
+
 Problem We Are Solving
+
 What IncidentLens Does
+
 Core Design Principle
+
 Architecture
+
 End-to-End Data Flow
+
 Technology Stack
+
 Project Structure
+
 Component Responsibilities
+
 Simulated Production
+
 Telemetry and OpenSearch
+
 Evidence Collection
+
 Evidence Correlation
+
 Strands Investigation Agent
+
 Local Model
+
 Streamlit UI
+
 Run Isolation and `run\\\_id`
 AWS Open-Source Stack Usage
 Development Environment
