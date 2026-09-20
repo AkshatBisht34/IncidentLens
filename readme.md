@@ -1,4 +1,4 @@
-**IncidentLens
+**IncidentLens**
 
 AI-powered, evidence-based incident investigation for production-like
 environments.
