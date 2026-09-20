@@ -1,4 +1,5 @@
 import time
+import uuid
 from datetime import datetime, timezone
 
 from opensearchpy import OpenSearch
@@ -15,6 +16,9 @@ class ProductionSimulator:
     def __init__(self):
         self.payment_api = PaymentAPI("healthy")
 
+        # One ID for this entire simulated production run.
+        self.run_id = str(uuid.uuid4())
+
         # Connect to the local OpenSearch container
         self.client = OpenSearch(
             hosts=[{"host": "localhost", "port": 9200}],
@@ -30,17 +34,17 @@ class ProductionSimulator:
     def send_to_opensearch(self, record):
         try:
             response = self.client.index(
-                    index=INDEX_NAME,
-                    body=record,
+                index=INDEX_NAME,
+                body=record,
             )
             print(
                 f"Sent {record['type']} to OpenSearch "
                 f"(document ID: {response['_id']})"
             )
-        except OpenSearchConnectionError as error:
+        except OpenSearchConnectionError:
             print(
-                    f"WARNING: OpenSearch unavialable. "
-                    f"Could not send {record['type']}."
+                f"WARNING: OpenSearch unavailable. "
+                f"Could not send {record['type']}."
             )
 
     def generate_request(self):
@@ -49,6 +53,7 @@ class ProductionSimulator:
         timestamp = datetime.now(timezone.utc).isoformat()
 
         log = {
+            "run_id": self.run_id,
             "timestamp": timestamp,
             "type": "log",
             "service": result["service"],
@@ -59,6 +64,7 @@ class ProductionSimulator:
         }
 
         metric = {
+            "run_id": self.run_id,
             "timestamp": timestamp,
             "type": "metric",
             "service": result["service"],
@@ -68,6 +74,7 @@ class ProductionSimulator:
         }
 
         event = {
+            "run_id": self.run_id,
             "timestamp": timestamp,
             "type": "event",
             "service": result["service"],
@@ -84,6 +91,7 @@ if __name__ == "__main__":
     simulator = ProductionSimulator()
 
     print("IncidentLens simulated production started.")
+    print(f"Run ID: {simulator.run_id}")
     print("Current state: HEALTHY")
 
     for _ in range(5):
