@@ -14,6 +14,58 @@ class EvidenceCollector:
             verify_certs=False,
         )
 
+    def _compact_record(self, record):
+        """Return only fields useful for investigation."""
+        return {
+            "timestamp": record.get("timestamp"),
+            "state": record.get("state"),
+            "success": record.get("success"),
+            "latency_ms": record.get("latency_ms", record.get("value")),
+            "type": record.get("type"),
+        }
+
+    def _collapse_timeline(self, records):
+        """
+        Collapse the log, metric, and event documents generated
+        for the same request into one compact timeline record.
+        """
+
+        grouped = {}
+
+        for record in records:
+            timestamp = record.get("timestamp")
+
+            if not timestamp:
+                continue
+
+            if timestamp not in grouped:
+                grouped[timestamp] = {
+                    "timestamp": timestamp,
+                    "state": record.get("state"),
+                    "success": record.get("success"),
+                    "latency_ms": None,
+                }
+
+            # Log contains latency_ms
+            if record.get("latency_ms") is not None:
+                grouped[timestamp]["latency_ms"] = record["latency_ms"]
+
+            # Metric contains the same latency as value
+            elif (
+                record.get("type") == "metric"
+                and record.get("value") is not None
+            ):
+                grouped[timestamp]["latency_ms"] = record["value"]
+
+            # Pick up state/success when available
+            if record.get("state") is not None:
+                grouped[timestamp]["state"] = record["state"]
+
+            if record.get("success") is not None:
+                grouped[timestamp]["success"] = record["success"]
+
+        return list(grouped.values())
+
     def get_latest_run_id(self):
         """
         Find the most recent production run.
@@ -92,7 +144,7 @@ class EvidenceCollector:
         )
 
         return [
-            hit["_source"]
+            self._compact_record(hit["_source"])
             for hit in response["hits"]["hits"]
         ]
 
@@ -139,7 +191,7 @@ class EvidenceCollector:
         )
 
         return [
-            hit["_source"]
+            self._compact_record(hit["_source"])
             for hit in response["hits"]["hits"]
         ]
 
@@ -198,7 +250,7 @@ class EvidenceCollector:
         )
 
         return [
-            hit["_source"]
+            self._compact_record(hit["_source"])
             for hit in response["hits"]["hits"]
         ]
 
@@ -242,10 +294,12 @@ class EvidenceCollector:
             },
         )
 
-        return [
+        records = [
             hit["_source"]
             for hit in response["hits"]["hits"]
         ]
+
+        return self._collapse_timeline(records)
 
 
 if __name__ == "__main__":
