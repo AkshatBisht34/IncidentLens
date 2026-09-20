@@ -50,22 +50,36 @@ Local Model
 Streamlit UI
 
 Run Isolation and `run\\\_id`
+
 AWS Open-Source Stack Usage
+
 Development Environment
+
 Git and GitHub
+
 Problems We Encountered
+
 Important Lessons From the
 Problems
+
 How the Major Problems Were
 Addressed
+
 How to Run the Project
+
 Development Workflow
+
 Project Resources
+
 What Makes IncidentLens
 Different
+
 Current Scope and Limitations
+
 Future Improvements
+
 Hackathon Context
+
 ---
 Project Overview
 IncidentLens is designed as a small production-like observability and
@@ -87,19 +101,31 @@ This makes the project an AI investigation workflow, rather than an
 LLM wrapper.
 ---
 Problem We Are Solving
+
 Incident investigation is often difficult because operational evidence
 is distributed across different sources.
+
 When a service fails, an engineer may need to answer questions such as:
 Which service failed?
+
 When did the degradation begin?
+
 Was the service healthy before the incident?
+
 Did latency increase before errors appeared?
+
 Which events happened immediately before the failure?
+
 Are multiple signals pointing to the same cause?
+
 Which services were affected?
+
 What evidence supports the suspected root cause?
+
 Traditional troubleshooting requires manually connecting these signals.
+
 IncidentLens attempts to automate this first layer of investigation.
+
 ---
 What IncidentLens Does
 The current simulated environment focuses on a `payment-api` service.
@@ -113,13 +139,14 @@ FAILING
 ```
 During these transitions it generates production-like telemetry.
 Examples include:
-log records
-metric records
-event records
-latency measurements
-failure signals
-recovery/state-transition information
-The telemetry is written to:
+
+   log records
+   metric records
+   event records
+   latency measurements
+   failure signals
+   recovery/state-transition information
+   The telemetry is written to:
 ``` text
 incidentlens-telemetry
 ```
