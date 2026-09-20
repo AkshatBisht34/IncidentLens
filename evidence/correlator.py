@@ -1,51 +1,94 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
-def _parse_timestamp(timestamp):
-    """Convert an ISO timestamp into a datetime object."""
-    return datetime.fromisoformat(timestamp)
+def parse_timestamp(record, record_type):
+    """
+    Parse and validate a telemetry timestamp.
+
+    Timestamps must:
+    - be valid ISO-8601 timestamps
+    - contain timezone information
+
+    Invalid or timezone-naive timestamps raise ValueError.
+    """
+
+    timestamp = record.get("timestamp")
+
+    if not timestamp:
+        raise ValueError(
+            f"{record_type} record is missing a timestamp: {record}"
+        )
+
+    try:
+        parsed = datetime.fromisoformat(timestamp)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Invalid timestamp in {record_type} record: {timestamp}"
+        ) from exc
+
+    if parsed.tzinfo is None:
+        raise ValueError(
+            f"Timezone-naive timestamp in {record_type} record: {timestamp}"
+        )
+
+    return parsed
 
 
 def correlate_latency_and_failures(
-    latency_evidence,
-    failure_evidence,
-    overlap_window_seconds=5,
+    latency_records,
+    failure_records,
+    latency_threshold_ms=500,
+    max_time_difference_seconds=5,
 ):
     """
-    Compare high-latency and failure timestamps and return
-    a compact correlation summary.
+    Compare latency records with failure records.
+
+    This function only performs correlation calculations.
+    It does not interpret the cause of failures.
     """
 
-    window = timedelta(seconds=overlap_window_seconds)
+    high_latency_records = [
+        record
+        for record in latency_records
+        if record.get("latency_ms", 0) >= latency_threshold_ms
+    ]
 
-    matched_pairs = 0
+    failure_count = len(failure_records)
+
+    if high_latency_records:
+        average_latency_ms = (
+            sum(record["latency_ms"] for record in high_latency_records)
+            / len(high_latency_records)
+        )
+    else:
+        average_latency_ms = None
+
+    matched_pairs = []
     closest_overlap_seconds = None
-    latency_values = []
 
-    for latency_record in latency_evidence:
-        latency_time = _parse_timestamp(
-            latency_record["timestamp"]
+    for latency_record in high_latency_records:
+        latency_time = parse_timestamp(
+            latency_record,
+            "latency",
         )
 
-        latency_value = latency_record.get("latency_ms")
-
-        if latency_value is not None:
-            latency_values.append(latency_value)
-
-        for failure_record in failure_evidence:
-            failure_time = _parse_timestamp(
-                failure_record["timestamp"]
+        for failure_record in failure_records:
+            failure_time = parse_timestamp(
+                failure_record,
+                "failure",
             )
 
-            time_difference = abs(
-                latency_time - failure_time
+            difference_seconds = abs(
+                (latency_time - failure_time).total_seconds()
             )
 
-            if time_difference <= window:
-                matched_pairs += 1
-
-                difference_seconds = (
-                    time_difference.total_seconds()
+            if difference_seconds <= max_time_difference_seconds:
+                matched_pairs.append(
+                    {
+                        "latency_timestamp": latency_record["timestamp"],
+                        "failure_timestamp": failure_record["timestamp"],
+                        "difference_seconds": difference_seconds,
+                    }
                 )
 
                 if (
@@ -54,22 +97,15 @@ def correlate_latency_and_failures(
                 ):
                     closest_overlap_seconds = difference_seconds
 
-    average_latency_ms = None
-
-    if latency_values:
-        average_latency_ms = round(
-            sum(latency_values) / len(latency_values),
-            2,
-        )
-
     return {
-        "overlap": matched_pairs > 0,
-        "matched_pairs": matched_pairs,
-        "closest_overlap_seconds": (
-            round(closest_overlap_seconds, 3)
-            if closest_overlap_seconds is not None
-            else None
-        ),
-        "average_latency_ms": average_latency_ms,
-        "failure_count": len(failure_evidence),
+        "parameters": {
+            "latency_threshold_ms": latency_threshold_ms,
+            "max_time_difference_seconds": max_time_difference_seconds,
+        },
+        "results": {
+            "matched_pairs": len(matched_pairs),
+            "closest_overlap_seconds": closest_overlap_seconds,
+            "average_latency_ms": average_latency_ms,
+            "failure_count": failure_count,
+        },
     }
